@@ -1,0 +1,11 @@
+---
+- name: Tailscale
+  hosts: all
+  tasks:
+
+    - name: Install Tailscale
+      shell: "curl -fsSL https://tailscale.com/install.sh | sh"
+
+    - name: Configure Tailscale
+      shell: "sudo tailscale up --auth-key '{{ lookup('env', 'TAILSCALE_TOKEN') }}'"
+

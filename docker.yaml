@@ -1,0 +1,37 @@
+---
+- name: Docker
+  hosts: all
+  tasks:
+
+    - name: Install deps
+      become: true
+      apt:
+        pkg:
+        - ca-certificates
+        - curl
+        - gnupg
+        - lsb-release
+        state: latest
+        update_cache: true
+
+    - name: Add GPG Key
+      become: true
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Repository
+      become: true
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu jammy stable
+        state: present
+
+    - name: Install
+      become: true
+      apt:
+        name: docker-ce
+        state: latest
+        update_cache: true
+
+    - name: Docker without sudo
+      shell: "sudo usermod -aG docker ubuntu"
