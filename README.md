@@ -1,32 +1,40 @@
-# Consul + Nomad + Fabio + Tailscale
+# Hashicute
+
+These are Ansible playbooks to configure a computing cluster consisting of the following tools:
+* Tailscale (VPN)
+* Consul (Service Mesh)
+* Nomad (Orchestrator)
+* Docker (Containers)
+* Fabio (Load Balancer)
 
 Features:
-* Nomad + Consul integration enabled
-* Fabio + Consul integration enabled
-* You can deploy your HTTP service in multiple instances via Nomad, and it will automatically have a load balancer via Fabio
-* All UIs and management stuff is exposed only to private Tailscale network
+* Nomad + Consul + Fabio are integrated out of the box
+* Forwarding Consul DNS (you can resolve your services using dig on any VM like this: `dig consul.service.lux.consul. ANY`)
+* All UIs and management stuff are exposed only to private Tailscale network
+* Fabio Load Balancer is listening public IPs so you can access your services from the internet if you need
+* Only 1 DC mode is supported
 
 Networking:
 * Fabio LB: 0.0.0.0:80
-* Fabio UI: <tailscale_ip>:9998
-* Consul UI: <tailscale_ip>:8500
-* Nomad UI:<tailscale_ip>:4646
+* Fabio UI: <tailscale_ip-of-your-vm>:9998
+* Consul UI: <tailscale_ip-of-your-vm>:8500
+* Nomad UI: <tailscale_ip-of-your-vm>:4646
 
 ## Getting started
 
-Disclaimer: I am not a professional system administrator, so there might be some hacks that you don't like.
+Disclaimer: I am not a professional system administrator, so there might be some dirty hacks that you don't like.
 
 Requirements:
 * Domain (you can buy one on [Namecheap](https://namecheap.com))
-* 3 VMs in any cloud with public IPs with Ubuntu 22.04 (you can buy one on Digital Ocean)
-* DNS hosting (Digital Ocean has DNS hosting integrated)
+* 3 VMs in any cloud with public IPs with Ubuntu 22.04 (you can buy one on [G-Core Labs](https://gcorelabs.com))
+* DNS hosting ([G-Core Labs](https://gcorelabs.com) has DNS hosting integrated)
 * [Tailscale](https://tailscale.com) account (you can easily create one)
-* Ansible installed on your laptop
-* Consul installed on your laptop
+* [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#installing-ansible-on-specific-operating-systems) installed on your laptop
+* [Consul](https://www.consul.io/downloads) installed on your laptop
 
 1. `git clone && cd ..`
 2. Add A records, so your VMs will be available via domain name like this: `lux-1.<your_domain>`, `lux-2.<your_domain>`, `lux-3.<your_domain>`
-   * I had VMs based in Lux, so I am using `lux-x` domain prefixes in this manual. If you want to use another DC name just replace `lux` everywhere
+   * I had VMs based in Lux, so I am using `lux-x` domain prefixes in this manual. In case you want to use another DC name, just replace `lux` everywhere.
 3. Add them to your Ansible hosts file like this:
 
 ```
@@ -37,12 +45,22 @@ lux-2.<your_domain>
 lux-3.<your_domain>
 ```
 
-4. Generate Tailscale key to authenticate your VMs (https://login.tailscale.com/admin/settings/keys => 'Auth keys' => 'Generate auth key' => 'Reusable' => 'Generate key')
-5. Set `TAILSCALE_TOKEN` env on your laptop so Ansible can use it in future
-6. Run `consul keygen` on your laptop and put this key into `CONSUL_ENCRYPT` env (for Ansible too)
-7. Run `consul tls ca create` and copy resulting files into `./consul-keys`
-8. Run `consul tls cert create -server -dc lux -domain consul` and copy resulting files into `./consul-keys`
-9. Check that you have the following files available:
+4. Configure ssh
+
+```
+$ cat .ssh/config
+Host *.<your_domain>
+	Port 22
+	User ubuntu
+	ForwardAgent yes
+```
+
+5. Generate Tailscale key to authenticate your VMs (https://login.tailscale.com/admin/settings/keys => 'Auth keys' => 'Generate auth key' => 'Reusable' => 'Generate key')
+6. Set `TAILSCALE_TOKEN` env on your laptop so Ansible can use it in future
+7. Run `consul keygen` on your laptop and put this key into `CONSUL_ENCRYPT` env (for Ansible too)
+8. Run `consul tls ca create` and copy resulting files into `./consul-keys`
+9.  Run `consul tls cert create -server -dc lux -domain consul` and copy resulting files into `./consul-keys`
+10. Check that you have the following files available:
 
 ```
 $ ls -la consul-keys/
@@ -52,9 +70,8 @@ $ ls -la consul-keys/
 -rw-r--r--  1 bk staff  969 May 22 19:44 lux-server-consul-0.pem
 ```
 
-10. Run `ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook tailscale.yaml docker.yaml hashistack.yaml fabio.yaml`
-
-## Job example
+11. Run `ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook tailscale.yaml docker.yaml hashistack.yaml fabio.yaml`
+12. Open Nomad UI (<tailscale_ip-of-your-vm>:4646) and run the following job there:
 
 ```hcl
 job "webserver" {
@@ -99,3 +116,6 @@ job "webserver" {
   }
 }
 ```
+
+13. Run `curl -I --header "Host: <your_domain>" http://<public-ip-of-your-vm>`
+14. You are awesome!
