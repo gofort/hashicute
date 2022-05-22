@@ -12,4 +12,4 @@
         command: ["-registry.consul.addr", "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:8500", 
           "-proxy.addr", "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:80", 
           "-ui.addr", "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:9998",
-          "log.access.target", "stdout"]
+          "-log.access.target", "stdout"]
