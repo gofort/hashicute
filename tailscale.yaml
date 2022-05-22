@@ -8,4 +8,3 @@
 
     - name: Configure Tailscale
       shell: "sudo tailscale up --auth-key '{{ lookup('env', 'TAILSCALE_TOKEN') }}'"
-

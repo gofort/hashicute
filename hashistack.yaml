@@ -39,19 +39,19 @@
     - name: Copy Keys
       become: true
       ansible.builtin.copy:
-        src: /Users/bk/Desktop/consul-keys/consul-agent-ca.pem
+        src: ./consul-keys/consul-agent-ca.pem
         dest: /etc/consul.d/consul-agent-ca.pem
 
     - name: Copy Keys
       become: true
       ansible.builtin.copy:
-        src: /Users/bk/Desktop/consul-keys/lux-server-consul-0-key.pem
+        src: ./consul-keys/lux-server-consul-0-key.pem
         dest: /etc/consul.d/lux-server-consul-0-key.pem
 
     - name: Copy Keys
       become: true
       ansible.builtin.copy:
-        src: /Users/bk/Desktop/consul-keys/lux-server-consul-0.pem
+        src: ./consul-keys/lux-server-consul-0.pem
         dest: /etc/consul.d/lux-server-consul-0.pem
 
     - name: Consul config
