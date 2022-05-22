@@ -1,20 +1,23 @@
 # Hashicute
 
 These are Ansible playbooks to configure a computing cluster consisting of the following tools:
+
 * Tailscale (VPN)
 * Consul (Service Mesh)
 * Nomad (Orchestrator)
 * Docker (Containers)
 * Fabio (Load Balancer)
 
-Features:
+## Features
+
 * Nomad + Consul + Fabio are integrated out of the box
 * Forwarding Consul DNS (you can resolve your services using dig on any VM like this: `dig consul.service.lux.consul. ANY`)
 * All UIs and management stuff are exposed only to private Tailscale network
 * Fabio Load Balancer is listening to public IPs so you can access your services from the internet if you need
 * Only 1 DC mode is supported
 
-Networking:
+## Networking
+
 * Fabio LB: 0.0.0.0:80
 * Fabio UI: <tailscale_ip-of-your-vm>:9998
 * Consul UI: <tailscale_ip-of-your-vm>:8500
