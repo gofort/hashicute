@@ -1,5 +1,17 @@
 # Consul + Nomad + Fabio + Tailscale
 
+Features:
+* Nomad + Consul integration enabled
+* Fabio + Consul integration enabled
+* You can deploy your http service in multiple instances via Nomad and it will automatically have load balancer via Fabio
+* All UIs and management stuff is exposed only to private tailscale network
+
+Networking:
+* Fabio LB: 0.0.0.0:80
+* Fabio UI: <tailscale_ip>:9998
+* Consul UI: <tailscale_ip>:8500
+* Nomad UI:<tailscale_ip>:4646
+
 ## Example of bogdi blog job to be publicly available via fabio
 
 ```hcl
