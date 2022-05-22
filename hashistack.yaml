@@ -1,0 +1,269 @@
+---
+- name: Hashistack
+  hosts: all
+  tasks:
+
+    - set_fact:
+        other_hosts_ips: "{{ groups['lux'] | map('extract', hostvars, ['ansible_tailscale0', 'ipv4', 'address']) | difference(hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address']) | map('regex_replace', '^', '\"') | map('regex_replace', '$', '\"') | join(', ') }}"
+
+    # TODO: every time marked as 'changed', needs fix
+    - name: Add CNI Plugin
+      become: true
+      shell: "curl -L -o cni-plugins.tgz 'https://github.com/containernetworking/plugins/releases/download/v1.0.0/cni-plugins-linux-amd64-v1.0.0.tgz' && mkdir -p /opt/cni/bin && tar -C /opt/cni/bin -xzf cni-plugins.tgz && rm -rf cni-plugins.tgz"
+
+    - name: Add GPG Key
+      become: true
+      apt_key:
+        url: https://apt.releases.hashicorp.com/gpg
+        state: present
+
+    - name: Add Repository
+      become: true
+      apt_repository:
+        repo: deb https://apt.releases.hashicorp.com jammy main
+        state: present
+
+    - name: Install
+      become: true
+      apt:
+        name: 
+        - consul
+        - nomad
+        state: latest
+        update_cache: true
+
+    - name: Autocomplete
+      command: "nomad -autocomplete-install"
+      ignore_errors: yes
+
+    - name: Copy Keys
+      become: true
+      ansible.builtin.copy:
+        src: /Users/bk/Desktop/consul-keys/consul-agent-ca.pem
+        dest: /etc/consul.d/consul-agent-ca.pem
+
+    - name: Copy Keys
+      become: true
+      ansible.builtin.copy:
+        src: /Users/bk/Desktop/consul-keys/lux-server-consul-0-key.pem
+        dest: /etc/consul.d/lux-server-consul-0-key.pem
+
+    - name: Copy Keys
+      become: true
+      ansible.builtin.copy:
+        src: /Users/bk/Desktop/consul-keys/lux-server-consul-0.pem
+        dest: /etc/consul.d/lux-server-consul-0.pem
+
+    - name: Consul config
+      become: true
+      notify: restart_consul_service
+      copy:
+        dest: /etc/consul.d/consul.hcl
+        content: |
+          datacenter = "lux"
+          data_dir = "/opt/consul"
+          encrypt = "{{ lookup('env', 'CONSUL_ENCRYPT') }}"
+
+          tls {
+            defaults {
+              ca_file = "/etc/consul.d/consul-agent-ca.pem"
+              cert_file = "/etc/consul.d/lux-server-consul-0.pem"
+              key_file = "/etc/consul.d/lux-server-consul-0-key.pem"
+              verify_incoming = true
+              verify_outgoing = true
+            }
+            internal_rpc {
+              verify_server_hostname = true
+            }
+          }
+
+          auto_encrypt {
+            allow_tls = true
+          }
+
+          retry_join = [{{ other_hosts_ips }}]
+
+          acl {
+            enabled = false
+          }
+
+          performance {
+            raft_multiplier = 3
+          }
+
+    - name: Consul server config
+      notify: restart_consul_service
+      become: true
+      copy:
+        dest: /etc/consul.d/server.hcl
+        content: |
+          server = true
+          bootstrap_expect = 3
+
+          bind_addr = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}"
+          client_addr = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}"
+
+          connect {
+            enabled = true
+          }
+
+          ui_config {
+            enabled = true
+          }
+
+          ports {
+            grpc = 8502
+            dns = 53
+          }
+
+    - name: Consul systemd
+      become: true
+      notify: restart_consul_service
+      copy:
+        dest: /etc/systemd/system/consul.service
+        content: |
+          [Unit]
+          Description="HashiCorp Consul - A service mesh solution"
+          Documentation=https://www.consul.io/
+          Requires=network-online.target
+          After=network-online.target
+          ConditionFileNotEmpty=/etc/consul.d/consul.hcl
+
+          [Service]
+          EnvironmentFile=-/etc/consul.d/consul.env
+          User=root
+          Group=root
+          ExecStart=/usr/bin/consul agent -config-dir=/etc/consul.d/
+          ExecReload=/bin/kill --signal HUP $MAINPID
+          KillMode=process
+          KillSignal=SIGTERM
+          Restart=on-failure
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Make sure a service unit is running
+      become: true
+      ansible.builtin.systemd:
+        enabled: yes
+        state: started
+        name: consul
+
+    - name: Nomad config
+      become: true
+      notify: restart_nomad_service
+      copy:
+        dest: /etc/nomad.d/nomad.hcl
+        content: |
+          data_dir = "/opt/nomad/data"
+          bind_addr = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}"
+          datacenter = "lux"
+
+          server {
+            enabled = true
+            bootstrap_expect = 3
+          }
+
+          client {
+            enabled = true
+          }
+          
+          consul {
+            address = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:8500"
+          }
+
+    - name: Nomad systemd
+      become: true
+      notify: restart_nomad_service
+      copy:
+        dest: /etc/systemd/system/nomad.service
+        content: |
+          [Unit]
+          Description=Nomad
+          Documentation=https://www.nomadproject.io/docs/
+          Wants=network-online.target
+          After=network-online.target
+
+          # When using Nomad with Consul it is not necessary to start Consul first. These
+          # lines start Consul before Nomad as an optimization to avoid Nomad logging
+          # that Consul is unavailable at startup.
+          Wants=consul.service
+          After=consul.service
+
+          [Service]
+
+          # Nomad server should be run as the nomad user. Nomad clients
+          # should be run as root
+          User=root
+          Group=root
+
+          ExecReload=/bin/kill -HUP $MAINPID
+          ExecStart=/usr/bin/nomad agent -config /etc/nomad.d
+          KillMode=process
+          KillSignal=SIGINT
+          LimitNOFILE=65536
+          LimitNPROC=infinity
+          Restart=on-failure
+          RestartSec=2
+
+          ## Configure unit start rate limiting. Units which are started more than
+          ## *burst* times within an *interval* time span are not permitted to start any
+          ## more. Use `StartLimitIntervalSec` or `StartLimitInterval` (depending on
+          ## systemd version) to configure the checking interval and `StartLimitBurst`
+          ## to configure how many starts per interval are allowed. The values in the
+          ## commented lines are defaults.
+
+          ## StartLimitIntervalSec is used for systemd versions >= 230
+          # StartLimitIntervalSec = 10s
+
+          ## StartLimitInterval is used for systemd versions < 230
+          # StartLimitInterval = 10s
+
+          TasksMax=infinity
+          OOMScoreAdjust=-1000
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Make sure a service unit is running
+      become: true
+      ansible.builtin.systemd:
+        enabled: yes
+        state: started
+        name: nomad
+
+    - name: Create target directory
+      become: true
+      file: path=/etc/systemd/resolved.conf.d state=directory mode=0755
+
+    - name: DNS config 
+      notify: restart_systemd_resolved_service
+      become: true
+      copy:
+        dest: /etc/systemd/resolved.conf.d/consul.conf
+        content: |
+          [Resolve]
+          DNS={{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}
+          DNSSEC=false
+          Domains=~consul
+
+  handlers:
+
+    - name: restart_systemd_resolved_service
+      become: true
+      service:
+        name: systemd-resolved
+        state: restarted
+
+    - name: restart_nomad_service
+      become: true
+      service:
+        name: nomad
+        state: restarted
+
+    - name: restart_consul_service
+      become: true
+      service:
+        name: consul
+        state: restarted
