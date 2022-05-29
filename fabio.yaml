@@ -1,12 +1,12 @@
 ---
-- name: Hashistack
+- name: Fabio
   hosts: all
   tasks:
 
     - name: Container present
       docker_container:
         name: fabio
-        state: started
+        state: absent
         image: fabiolb/fabio
         network_mode: host
         command: ["-registry.consul.addr", "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:8500", 

@@ -6,20 +6,19 @@ These are Ansible playbooks to configure a computing cluster consisting of the f
 * Consul (Service Mesh)
 * Nomad (Orchestrator)
 * Docker (Containers)
-* Fabio (Load Balancer)
+* Traefik (Load Balancer)
 
 ## Features
 
-* Nomad + Consul + Fabio are integrated out of the box
+* Nomad + Consul + Traefik are integrated out of the box
 * Forwarding Consul DNS (you can resolve your services using dig on any VM like this: `dig consul.service.lux.consul. ANY`)
 * All UIs and management stuff are exposed only to private Tailscale network
-* Fabio Load Balancer is listening to public IPs so you can access your services from the internet if you need
+* Traefik Load Balancer is listening to public IPs so you can access your services from the internet if you need
 * Only 1 DC mode is supported
 
 ## Networking
 
-* Fabio LB: 0.0.0.0:80
-* Fabio UI: <tailscale_ip-of-your-vm>:9998
+* Traefik LB: 0.0.0.0:80
 * Consul UI: <tailscale_ip-of-your-vm>:8500
 * Nomad UI: <tailscale_ip-of-your-vm>:4646
 
@@ -72,7 +71,7 @@ $ ls -la consul-keys/
 -rw-r--r--  1 bk staff  969 May 22 19:44 lux-server-consul-0.pem
 ```
 
-11. Run `ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook tailscale.yaml docker.yaml hashistack.yaml fabio.yaml`
+11. Run `ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook tailscale.yaml docker.yaml hashistack.yaml ans-traefik.yaml`
 12. Open Nomad UI (<tailscale_ip-of-your-vm>:4646) and run the following job there:
 
 ```hcl
@@ -90,7 +89,10 @@ job "webserver" {
 
     service {
       name = "apache-webserver"
-      tags = ["urlprefix-<your_domain>/"]
+      tags = [
+        "traefik.enable=true",
+        "traefik.http.routers.http.rule=Host(`mydomain.xyz`)",
+      ]
       port = "http"
       check {
         name     = "alive"
@@ -119,5 +121,5 @@ job "webserver" {
 }
 ```
 
-13. Run `curl -I --header "Host: <your_domain>" http://<public-ip-of-your-vm>`
+13. Run `curl -I --header "Host: mydomain.xyz" http://<public-ip-of-your-vm>`
 14. You are awesome!
