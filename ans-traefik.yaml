@@ -3,7 +3,7 @@
   hosts: all
   tasks:
 
-    - name: Create traefic config dir
+    - name: Create traefik config dir
       become: true
       file: path=/etc/traefik state=directory mode=0755
 
