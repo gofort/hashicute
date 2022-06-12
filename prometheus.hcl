@@ -8,11 +8,12 @@ job "prometheus" {
     network {
       port "prometheus_ui" {
         static = 9090
+        host_network = "private"
       }
     }
 
     restart {
-      attempts = 2
+      attempts = 5
       interval = "30m"
       delay    = "15s"
       mode     = "fail"
@@ -35,7 +36,6 @@ global:
 
 scrape_configs:
 
-
   - job_name: 'nomad_metrics'
 
     consul_sd_configs:
@@ -51,6 +51,22 @@ scrape_configs:
     metrics_path: /v1/metrics
     params:
       format: ['prometheus']
+
+  - job_name: 'consul-services'
+
+    consul_sd_configs:
+    - server: '{{ env "CONSUL_HTTP_ADDR" }}'
+
+    relabel_configs:
+    - source_labels: ['__meta_consul_tags']
+      regex: '(.*)metrics(.*)'
+      action: keep
+
+    scrape_interval: 5s
+    metrics_path: /metrics
+    params:
+      format: ['prometheus']
+
 EOH
       }
 
@@ -71,8 +87,10 @@ EOH
 
         tags = [
           "traefik.enable=true",
-          "traefik.http.routers.prometheus-ui.rule=Host(`prometheus.lux.bogdi.xyz`)",
-          "traefik.http.routers.prometheus-ui.entrypoints=http-internal"
+          "traefik.http.routers.prometheus-ui.rule=PathPrefix(`/prometheus`)",
+          "traefik.http.routers.prometheus-ui.entrypoints=http-internal",
+          "traefik.http.routers.prometheus-ui.middlewares=prometheus-stripprefix",
+          "traefik.http.middlewares.prometheus-stripprefix.stripprefix.prefixes=/prometheus"
         ]
         
         port = "prometheus_ui"

@@ -26,6 +26,8 @@ job "traefik-exp" {
       name = "traefik-exp"
       port = "api"
 
+      tags = ["metrics"]
+
       check {
         name     = "alive"
         type     = "tcp"
