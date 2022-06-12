@@ -17,7 +17,7 @@
               [entryPoints.http]
               address = "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:80"
               [entryPoints.http-internal]
-              address = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:16000"
+              address = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:80"
               [entryPoints.traefik]
               address = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:8081"
 
