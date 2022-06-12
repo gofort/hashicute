@@ -1,0 +1,20 @@
+---
+- name: Prometheus
+  hosts: lux[0]
+  tasks:
+
+    - name: Create target directory
+      become: true
+      file: path=/opt/nomad/jobs state=directory mode=0755
+
+    - name: Copy Job
+      become: true
+      notify: apply_prom_job
+      ansible.builtin.copy:
+        src: ./prometheus.hcl
+        dest: /opt/nomad/jobs/prometheus.hcl
+
+  handlers:
+
+    - name: apply_prom_job
+      command: nomad job run --address http://{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:4646 /opt/nomad/jobs/prometheus.hcl
