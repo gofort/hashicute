@@ -7,6 +7,7 @@ These are Ansible playbooks to configure a computing cluster consisting of the f
 * Nomad (Orchestrator)
 * Docker (Containers)
 * Traefik (Load Balancer)
+* Prometheus (Metrics)
 
 ## Features
 
