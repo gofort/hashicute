@@ -175,6 +175,12 @@
 
           client {
             enabled = true
+            host_network "public" {
+              interface = "enp1s0"
+            }
+            host_network "private" {
+              interface = "tailscale0"
+            }
           }
           
           consul {

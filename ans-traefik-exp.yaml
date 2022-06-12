@@ -1,0 +1,20 @@
+---
+- name: Traefik-exp
+  hosts: all
+  tasks:
+
+    - name: Create target directory
+      become: true
+      file: path=/opt/nomad/jobs state=directory mode=0755
+
+    - name: Copy Job
+      become: true
+      notify: apply_prom_job
+      ansible.builtin.copy:
+        src: ./traefik.hcl
+        dest: /opt/nomad/jobs/traefik.hcl
+
+  handlers:
+
+    - name: apply_prom_job
+      command: nomad job run --address http://{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:4646 /opt/nomad/jobs/traefik.hcl
