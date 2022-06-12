@@ -16,6 +16,8 @@
           [entryPoints]
               [entryPoints.http]
               address = "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:80"
+              [entryPoints.http-internal]
+              address = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:16000"
               [entryPoints.traefik]
               address = "{{ hostvars[inventory_hostname]['ansible_tailscale0']['ipv4']['address'] }}:8081"
 
@@ -36,7 +38,7 @@
       docker_container:
         name: traefik
         state: started
-        image: traefik:2.7
+        image: traefik:latest
         network_mode: host
         volumes: /etc/traefik/traefik.toml:/etc/traefik/traefik.toml
 
