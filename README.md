@@ -93,6 +93,7 @@ job "webserver" {
       tags = [
         "traefik.enable=true",
         "traefik.http.routers.http.rule=Host(`mydomain.xyz`)",
+        "traefik.http.routers.prometheus-ui.entrypoints=http"
       ]
       port = "http"
       check {
@@ -124,3 +125,16 @@ job "webserver" {
 
 13. Run `curl -I --header "Host: mydomain.xyz" http://<public-ip-of-your-vm>`
 14. You are awesome!
+
+## Prometheus Metrics Scraping
+
+Just add tag "metrics" to scrape metrics using `/metrics` path.
+
+```hcl
+service {
+  name = "traefik-exp"
+  port = "api"
+
+  tags = ["metrics"]
+}
+```
