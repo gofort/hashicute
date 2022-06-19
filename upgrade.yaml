@@ -1,0 +1,15 @@
+---
+- name: Upgrade
+  hosts: all
+  tasks:
+
+    - name: Upgrade
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: true
+
+    - name: Reboot a slow machine that might have lots of updates to apply
+      become: yes
+      reboot:
+        reboot_timeout: 3600

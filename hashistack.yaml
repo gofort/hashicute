@@ -176,7 +176,7 @@
           client {
             enabled = true
             host_network "public" {
-              interface = "enp1s0"
+              interface = "{{ ansible_default_ipv4.interface }}"
             }
             host_network "private" {
               interface = "tailscale0"

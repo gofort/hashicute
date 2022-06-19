@@ -20,6 +20,7 @@ These are Ansible playbooks to configure a computing cluster consisting of the f
 ## Networking
 
 * Traefik LB: <public_ip-of-your-vm>:80
+* Traefik UI: <tailscale_ip-of-your-vm>:8081
 * Consul UI: <tailscale_ip-of-your-vm>:8500
 * Nomad UI: <tailscale_ip-of-your-vm>:4646
 * Prometheus UI: <tailscale_ip-of-your-vm>:80/prometheus
@@ -73,7 +74,7 @@ $ ls -la consul-keys/
 -rw-r--r--  1 bk staff  969 May 22 19:44 lux-server-consul-0.pem
 ```
 
-11. Run `ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook tailscale.yaml docker.yaml hashistack.yaml ans-traefik-exp.yaml ans-prometheus.yaml`
+11. Run `ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook upgrade.yaml tailscale.yaml docker.yaml hashistack.yaml ans-traefik-exp.yaml ans-prometheus.yaml`
 12. Open Nomad UI (<tailscale_ip-of-your-vm>:4646) and run the following job there:
 
 ```hcl
